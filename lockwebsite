@@ -1,0 +1,118 @@
+#!/bin/sh
+#
+# lock or un lock a website by using chmod
+#
+# Author Dominig ar Foll
+# License GplV3
+# date 06 Feb 2017
+#
+LANG=C
+
+# Set to 1 to enable additional output
+DEBUG=0
+OUT="/dev/null"
+
+# Logging routines
+WARNINGS=0
+ERRORS=0
+CLEAR="$(tput sgr0)"
+INFO="$(tput bold)"
+RED="$(tput setaf 1)$(tput bold)"
+GREEN="$(tput setaf 2)$(tput bold)"
+YELLOW="$(tput setaf 3)$(tput bold)"
+info() {
+        echo "${INFO}$1${CLEAR}"
+}
+error() {
+        ERRORS=$((ERRORS+1))
+        echo "${RED}$1${CLEAR}"
+}
+warn() {
+        WARNINGS=$((WARNINGS+1))
+        echo "${YELLOW}$1${CLEAR}"
+}
+success() {
+        echo "${GREEN}$1${CLEAR}"
+}
+die() {
+        error "$1"
+        exit 1
+}
+debug() {
+        if [ $DEBUG -eq 1 ]; then
+                echo "$1"
+        fi
+}
+
+
+usage() {
+        echo "Lock or unlock a web site "
+        echo "by remowing write access to owner and group"
+        echo ""
+        echo "Usage: $(basename $0) [-v] websitedir lock|unlock"
+        echo "       -v: Verbose debug"
+        echo "       websitedir: Path to the directory containing the site"
+        echo "       lock:    Lock the site by removing all write access"
+        echo "       unlock:  Ulock the iste by reactivating write access"
+        echo "ex:"
+        echo "   sudo lockwebsite.sh MyWebSiteDir lock"
+	echo ""
+        exit 1
+}
+
+lock () {
+	info  "Start locking $WEBSITEDIR ..."
+	find $WEBSITEDIR -exec chmod -R ugo-w {} \;
+        debug "$WEBSITEDIR locked"
+        }
+
+unlock () {
+        info  "Starting unlocking $WEBSITEDIR ..."
+        find $WEBSITEDIR -exec chmod -R ug+w {} \;
+        debug "$WEBSITEDIR unlocked"
+        }
+
+# Main starts here
+# Parse and validate arguments
+#
+
+debug "command to execute lockwebsite $WEBSITEDIR $COMMAND"
+
+if [ "$1" != "-v" ] && [ $# -ne 2 ]; then
+        error "incorrect number of arguments"
+        usage
+fi
+if [ "$1" == "-v" ] && [ $# -ne 3 ]; then
+        error "incorrect number of arguments"
+        usage
+fi
+
+if [ "$1" = "-v" ] ; then
+        DEBUG=1
+        OUT="1"
+        shift
+fi
+
+WEBSITEDIR=$1
+COMMAND=$2
+
+if [ ! -d "$WEBSITEDIR" ] ; then
+        die "Directory $WEBSITEDIR not found"
+fi
+
+if [ $COMMAND != "lock" ] && [ $COMMAND != "unlock" ] ; then
+        debug "incorrect command only lock or unlock are supported"
+	usage
+fi
+
+# do the actual work
+#
+if [ $COMMAND = "lock" ] ; then
+       lock
+fi
+
+if [ $COMMAND = "unlock" ] ;then
+       unlock
+fi
+
+success "$WEBSITEDIR $COMMAND"
